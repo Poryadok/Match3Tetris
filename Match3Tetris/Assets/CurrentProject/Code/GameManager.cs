@@ -1,8 +1,10 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using TMPro;
 using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.Serialization;
 using UnityEngine.UIElements;
 
@@ -10,6 +12,8 @@ public class GameManager : MonoBehaviour
 {
     [SerializeField] private Tile[] tiles;
     [SerializeField] private Vector2Int spawnPosition;
+    [SerializeField] private TextMeshProUGUI ScoreText;
+    [SerializeField] private TextMeshProUGUI GameoverText;
 
     public float TickDelay;
     public float AnimationTickDelay;
@@ -41,6 +45,9 @@ public class GameManager : MonoBehaviour
         {
             tile.SetEmpty();
         }
+
+        GameoverText.gameObject.SetActive(false);
+        ScoreText.text = "0";
     }
 
     private void Update()
@@ -73,7 +80,12 @@ public class GameManager : MonoBehaviour
 
         if (currentPiece != null)
         {
-            if (Input.GetKeyDown(KeyCode.Space))
+            if (Input.GetKeyDown(KeyCode.R))
+            {
+                SceneManager.LoadScene(0);
+            }
+
+            if (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.UpArrow))
             {
                 var rotatedPiecePoints = currentPiece.GetRotatedRightPoints();
                 ClampPiecePoints(rotatedPiecePoints);
@@ -130,6 +142,7 @@ public class GameManager : MonoBehaviour
 
         if (Time.time > lastTick + TickDelay)
         {
+            TickDelay *= 0.999f;
             FigureDrop();
         }
 
@@ -218,16 +231,17 @@ public class GameManager : MonoBehaviour
                 if (point.y + currentPiece.Position.y >= 20)
                 {
                     isGameOver = true;
+                    GameoverText.gameObject.SetActive(true);
                     break;
                 }
             }
-            
+
             RenderFigure();
             currentPiece = null;
-            
+
             if (!isGameOver)
             {
-                CheckField();   
+                CheckField();
             }
         }
 
@@ -272,6 +286,8 @@ public class GameManager : MonoBehaviour
         {
             isPlayingAnimation = true;
         }
+
+        ScoreText.text = score.ToString();
     }
 
     private bool CheckRaws()
@@ -326,7 +342,7 @@ public class GameManager : MonoBehaviour
 
                 if (field[x][y].Color == field[x + 1][y].Color && field[x + 1][y].Color == field[x + 2][y].Color)
                 {
-                    score += 1;
+                    score += 10;
                     tilesToClean.Add(field[x][y]);
                     tilesToClean.Add(field[x + 1][y]);
                     tilesToClean.Add(field[x + 2][y]);
