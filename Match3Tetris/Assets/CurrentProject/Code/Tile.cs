@@ -7,10 +7,45 @@ using UnityEngine.UI;
 
 public class Tile : MonoBehaviour
 {
-    [SerializeField] private Image image;
+    [SerializeField] private Image spriteImage;
+    [SerializeField] private Image match3Image;
+    [SerializeField] private Image tetrisImage;
 
     public bool IsEmpty { get; private set; }
     public Colors Color { get; private set; }
+
+    private bool _match3FallTarget;
+    public bool Match3FallTarget
+    {
+        get
+        {
+            return _match3FallTarget;
+        }
+        set
+        {
+            if (_match3FallTarget != value)
+            {
+                _match3FallTarget = value;
+                match3Image.gameObject.SetActive(_match3FallTarget);   
+            }
+        }
+    }
+    private bool _tetrisFallTarget;
+    public bool TetrisFallTarget
+    {
+        get
+        {
+            return _tetrisFallTarget;
+        }
+        set
+        {
+            if (_tetrisFallTarget != value)
+            {
+                _tetrisFallTarget = value;
+                tetrisImage.gameObject.SetActive(_tetrisFallTarget);   
+            }
+        }
+    }
 
     public void SetEmpty()
     {
@@ -27,20 +62,20 @@ public class Tile : MonoBehaviour
 
     private void UpdateSprite()
     {
-        image.gameObject.SetActive(!IsEmpty);
+        spriteImage.gameObject.SetActive(!IsEmpty);
         switch (Color)
         {
             case Colors.Blue:
-                image.color = ColorList.Blue;
+                spriteImage.color = ColorList.Blue;
                 break;
             case Colors.Green:
-                image.color = ColorList.Green;
+                spriteImage.color = ColorList.Green;
                 break;
             case Colors.Red:
-                image.color = ColorList.Red;
+                spriteImage.color = ColorList.Red;
                 break;
             case Colors.Yellow:
-                image.color = ColorList.Yellow;
+                spriteImage.color = ColorList.Yellow;
                 break;
             default:
                 throw new ArgumentOutOfRangeException();

@@ -6106,6 +6106,7 @@ MonoBehaviour:
   - {fileID: 1155849493}
   spawnPosition: {x: 4, y: 19}
   TickDelay: 0.5
+  AnimationTickDelay: 0.1
 --- !u!4 &509785686
 Transform:
   m_ObjectHideFlags: 0
@@ -23692,7 +23693,7 @@ Light:
   m_BounceIntensity: 1
   m_ColorTemperature: 6570
   m_UseColorTemperature: 0
-  m_BoundingSphereOverride: {x: 9.592645e-39, y: 0, z: 0, w: 1e-45}
+  m_BoundingSphereOverride: {x: 2.7492415e+26, y: 7.776507e+31, z: 2.0196261e-19, w: 1.35559e-19}
   m_UseBoundingSphereOverride: 0
   m_UseViewFrustumForShadowCasterCull: 1
   m_ShadowRadius: 0

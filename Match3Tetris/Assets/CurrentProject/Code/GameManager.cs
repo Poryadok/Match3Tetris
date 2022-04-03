@@ -12,6 +12,7 @@ public class GameManager : MonoBehaviour
     [SerializeField] private Vector2Int spawnPosition;
 
     public float TickDelay;
+    public float AnimationTickDelay;
 
     private int score;
     private bool isGameOver;
@@ -19,8 +20,9 @@ public class GameManager : MonoBehaviour
     private Tile[][] field;
 
     private float lastTick;
+    private bool isPlayingAnimation;
 
-    private Figure currentFigure;
+    private Piece currentPiece;
 
     private void Start()
     {
@@ -48,21 +50,81 @@ public class GameManager : MonoBehaviour
             return;
         }
 
-        PreMathRenderClear();
-
-        if (currentFigure != null)
+        if (isPlayingAnimation)
         {
-            if (Input.GetButtonDown("Right"))
+            if (Time.time > lastTick + AnimationTickDelay)
             {
-                
+                PlayAnimations();
+                if (isPlayingAnimation)
+                {
+                    CheckField();
+                }
             }
         }
-        
-        if (currentFigure == null)
+        else
         {
-            currentFigure = new Figure()
+            PieceUpdate();
+        }
+    }
+
+    private void PieceUpdate()
+    {
+        PreMathRenderClear();
+
+        if (currentPiece != null)
+        {
+            if (Input.GetKeyDown(KeyCode.Space))
+            {
+                var rotatedPiecePoints = currentPiece.GetRotatedRightPoints();
+                ClampPiecePoints(rotatedPiecePoints);
+
+                bool isRotationValid = true;
+                foreach (var point in rotatedPiecePoints)
+                {
+                    if (IsBlock(point.x, point.y))
+                    {
+                        isRotationValid = false;
+                        break;
+                    }
+                }
+
+                if (isRotationValid)
+                {
+                    currentPiece.Points = currentPiece.RotateRight();
+                    currentPiece.Position += rotatedPiecePoints[0] - (currentPiece.Points[0] + currentPiece.Position);
+                }
+            }
+
+            if (Input.GetKeyDown(KeyCode.RightArrow))
+            {
+                if (CanMove(Vector2Int.right))
+                {
+                    currentPiece.Position += Vector2Int.right;
+                }
+            }
+
+            if (Input.GetKeyDown(KeyCode.LeftArrow))
+            {
+                if (CanMove(Vector2Int.left))
+                {
+                    currentPiece.Position += Vector2Int.left;
+                }
+            }
+
+            if (Input.GetKeyDown(KeyCode.DownArrow))
+            {
+                while (CanMove(Vector2Int.down))
+                {
+                    currentPiece.Position += Vector2Int.down;
+                }
+            }
+        }
+
+        if (currentPiece == null)
+        {
+            currentPiece = new Piece()
                 {Points = FigureList.Figures[Random.Range(0, FigureList.Figures.Length)], Position = spawnPosition};
-            currentFigure.RandomizeColors(4);
+            currentPiece.RandomizeColors(4);
             lastTick = Time.time;
         }
 
@@ -70,26 +132,59 @@ public class GameManager : MonoBehaviour
         {
             FigureDrop();
         }
-        
-        CheckField();
 
-        if (currentFigure != null)
+        if (currentPiece != null)
         {
-            RenderFigure();   
+            RenderFigure();
+        }
+    }
+
+    private static void ClampPiecePoints(Vector2Int[] rotatedPiecePoints)
+    {
+        for (int i = 0; i < 4; i++)
+        {
+            if (rotatedPiecePoints[i].x < 0)
+            {
+                var offset = -rotatedPiecePoints[i].x;
+                for (int j = 0; j < 4; j++)
+                {
+                    rotatedPiecePoints[j] += Vector2Int.right * offset;
+                }
+            }
+            else if (rotatedPiecePoints[i].x > 9)
+            {
+                var offset = rotatedPiecePoints[i].x - 9;
+                for (int j = 0; j < 4; j++)
+                {
+                    rotatedPiecePoints[j] -= Vector2Int.right * offset;
+                }
+            }
+        }
+
+        for (int i = 0; i < 4; i++)
+        {
+            if (rotatedPiecePoints[i].y < 0)
+            {
+                var offset = -rotatedPiecePoints[i].y;
+                for (int j = 0; j < 4; j++)
+                {
+                    rotatedPiecePoints[j] += Vector2Int.up * offset;
+                }
+            }
         }
     }
 
     private void PreMathRenderClear()
     {
-        if (currentFigure == null)
+        if (currentPiece == null)
         {
             return;
         }
 
-        var position = currentFigure.Position;
-        for (int i = 0; i < currentFigure.Points.Length; i++)
+        var position = currentPiece.Position;
+        for (int i = 0; i < currentPiece.Points.Length; i++)
         {
-            var pos = position + currentFigure.Points[i];
+            var pos = position + currentPiece.Points[i];
             if (pos.x < 10 && pos.y < 20)
             {
                 field[pos.x][pos.y].SetEmpty();
@@ -99,80 +194,85 @@ public class GameManager : MonoBehaviour
 
     private void RenderFigure()
     {
-        var position = currentFigure.Position;
-        for (int i = 0; i < currentFigure.Points.Length; i++)
+        var position = currentPiece.Position;
+        for (int i = 0; i < currentPiece.Points.Length; i++)
         {
-            var pos = position + currentFigure.Points[i];
+            var pos = position + currentPiece.Points[i];
             if (pos.x < 10 && pos.y < 20)
             {
-                field[pos.x][pos.y].SetColor(currentFigure.Colors[i]);
+                field[pos.x][pos.y].SetColor(currentPiece.Colors[i]);
             }
         }
     }
 
     private void FigureDrop()
     {
-        if (CanDrop())
+        if (CanMove(Vector2Int.down))
         {
-            currentFigure.Position += Vector2Int.down;
+            currentPiece.Position += Vector2Int.down;
         }
-
-        if (!CanDrop())
+        else
         {
             RenderFigure();
-            currentFigure = null;
+            currentPiece = null;
+            CheckField();
         }
 
         lastTick = Time.time;
     }
 
-    private bool CanDrop()
+    private bool CanMove(Vector2Int direction)
     {
-        
-        
-        var position = currentFigure.Position;
-        var points = currentFigure.Points;
+        var position = currentPiece.Position;
+        var points = currentPiece.Points;
 
-        var canDrop = true;
+        var canMove = true;
 
         for (int i = 0; i < points.Length; i++)
         {
-            var checkPosition = points[i] + Vector2Int.down;
+            var checkPosition = points[i] + direction;
             if (points.Contains(checkPosition))
                 continue;
             checkPosition += position;
-            if (checkPosition.y < 0)
+            if (checkPosition.y < 0 || checkPosition.x < 0 || checkPosition.x > 9)
             {
-                canDrop = false;
+                canMove = false;
                 break;
             }
 
-            if (!field[checkPosition.x][checkPosition.y].IsEmpty)
+            if (checkPosition.y < 20)
             {
-                canDrop = false;
-                break;
+                if (!field[checkPosition.x][checkPosition.y].IsEmpty)
+                {
+                    canMove = false;
+                    break;
+                }
             }
         }
 
-        return canDrop;
+        return canMove;
     }
 
     private void CheckField()
     {
-        CheckRaws();
-        CheckMatch3();
+        if (CheckRaws() || CheckMatch3())
+        {
+            isPlayingAnimation = true;
+        }
     }
 
-    private void CheckRaws()
+    private bool CheckRaws()
     {
+        bool isSmthComplete = false;
+
         for (int y = 0; y < 20; y++)
         {
             bool isComplete = true;
             for (int x = 0; x < 10; x++)
             {
-                if (field[x][y].IsEmpty || (currentFigure != null &&
-                                            currentFigure.Points.Contains(new Vector2Int(x, y) -
-                                                                          currentFigure.Position)))
+                if (field[x][y].IsEmpty || (currentPiece != null &&
+                                            currentPiece.Points.Contains(new Vector2Int(x, y) -
+                                                                         currentPiece.Position)))
                 {
                     isComplete = false;
                     break;
@@ -185,13 +285,20 @@ public class GameManager : MonoBehaviour
                 for (int x = 0; x < 10; x++)
                 {
                     field[x][y].SetEmpty();
+                    field[x][y].TetrisFallTarget = true;
                 }
+
+                isSmthComplete = true;
             }
         }
+
+        return isSmthComplete;
     }
 
-    private void CheckMatch3()
+    private bool CheckMatch3()
     {
+        bool isSmthComplete = false;
+
         List<Tile> tilesToClean = new List<Tile>();
 
         // check rows
@@ -210,6 +317,9 @@ public class GameManager : MonoBehaviour
                     tilesToClean.Add(field[x][y]);
                     tilesToClean.Add(field[x + 1][y]);
                     tilesToClean.Add(field[x + 2][y]);
+                    field[x][y].Match3FallTarget = true;
+                    field[x + 1][y].Match3FallTarget = true;
+                    field[x + 2][y].Match3FallTarget = true;
                 }
             }
         }
@@ -219,7 +329,7 @@ public class GameManager : MonoBehaviour
         {
             for (int y = 0; y < 18; y++)
             {
-                if (!(IsBlock(x, y) && IsBlock(x, y + 2) && IsBlock(x, y + 2)))
+                if (!(IsBlock(x, y) && IsBlock(x, y + 1) && IsBlock(x, y + 2)))
                 {
                     continue;
                 }
@@ -230,18 +340,103 @@ public class GameManager : MonoBehaviour
                     tilesToClean.Add(field[x][y]);
                     tilesToClean.Add(field[x][y + 1]);
                     tilesToClean.Add(field[x][y + 2]);
+                    field[x][y].Match3FallTarget = true;
+                    field[x][y + 1].Match3FallTarget = true;
+                    field[x][y + 2].Match3FallTarget = true;
                 }
             }
         }
+
+        isSmthComplete = tilesToClean.Count > 0;
 
         foreach (var tile in tilesToClean)
         {
             tile.SetEmpty();
         }
+
+        return isSmthComplete;
     }
 
     private bool IsBlock(int x, int y)
     {
         return !field[x][y].IsEmpty;
+    }
+
+    private void PlayAnimations()
+    {
+        if (TetrisFall())
+        {
+            lastTick = Time.time;
+            return;
+        }
+
+        if (Match3Fall())
+        {
+            lastTick = Time.time;
+        }
+        else
+        {
+            foreach (var tile in tiles)
+            {
+                tile.TetrisFallTarget = false;
+                tile.Match3FallTarget = false;
+            }
+
+            isPlayingAnimation = false;
+        }
+    }
+
+    private bool TetrisFall()
+    {
+        bool isSmthFell = false;
+
+        for (int i = 0; i < 20; i++)
+        {
+            if (field[0][i].TetrisFallTarget)
+            {
+                for (int y = i; y < 20 - 1; y++)
+                {
+                    for (int x = 0; x < 10; x++)
+                    {
+                        if (!field[x][y + 1].IsEmpty)
+                        {
+                            field[x][y].SetColor(field[x][y + 1].Color);
+                            field[x][y + 1].SetEmpty();
+                        }
+
+                        field[x][y].TetrisFallTarget = field[x][y + 1].TetrisFallTarget;
+                        field[x][y].Match3FallTarget = field[x][y + 1].Match3FallTarget;
+                        field[x][y + 1].TetrisFallTarget = false;
+                        field[x][y + 1].Match3FallTarget = false;
+                    }
+                }
+
+                isSmthFell = true;
+                break;
+            }
+        }
+
+        return isSmthFell;
+    }
+
+    private bool Match3Fall()
+    {
+        bool isSmthFell = false;
+
+        for (int x = 0; x < 10; x++)
+        {
+            for (int y = 0; y < 20 - 1; y++)
+            {
+                if (field[x][y].Match3FallTarget && field[x][y].IsEmpty && !field[x][y + 1].IsEmpty)
+                {
+                    field[x][y].SetColor(field[x][y + 1].Color);
+                    field[x][y + 1].SetEmpty();
+                    field[x][y + 1].Match3FallTarget = true;
+                    isSmthFell = true;
+                }
+            }
+        }
+
+        return isSmthFell;
     }
 }

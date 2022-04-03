@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Figure
+public class Piece
 {
     public Vector2Int Position;
     public Vector2Int[] Points;
@@ -14,6 +14,17 @@ public class Figure
         {
             Colors[i] = (Colors) Random.Range(0, number);
         }
+    }
+
+    public Vector2Int[] GetRotatedRightPoints()
+    {
+        var result = new Vector2Int[4];
+        for (int i = 0; i < 4; i++)
+        {
+            result[i] = RotateVector(Points[i], 90) + Position;
+        }
+
+        return result;
     }
 
     public Vector2Int[] RotateRight()
