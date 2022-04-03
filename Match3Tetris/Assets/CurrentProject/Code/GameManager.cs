@@ -81,7 +81,7 @@ public class GameManager : MonoBehaviour
                 bool isRotationValid = true;
                 foreach (var point in rotatedPiecePoints)
                 {
-                    if (IsBlock(point.x, point.y))
+                    if (point.y < 20 && IsBlock(point.x, point.y))
                     {
                         isRotationValid = false;
                         break;
@@ -213,9 +213,22 @@ public class GameManager : MonoBehaviour
         }
         else
         {
+            foreach (var point in currentPiece.Points)
+            {
+                if (point.y + currentPiece.Position.y >= 20)
+                {
+                    isGameOver = true;
+                    break;
+                }
+            }
+            
             RenderFigure();
             currentPiece = null;
-            CheckField();
+            
+            if (!isGameOver)
+            {
+                CheckField();   
+            }
         }
 
         lastTick = Time.time;
